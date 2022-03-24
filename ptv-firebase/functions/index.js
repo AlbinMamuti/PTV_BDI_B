@@ -18,12 +18,19 @@ exports.newOrder = functions.firestore
 
         // select one driver from the filtered list
         // TODO: select driver based on score
-        const driver = filteredDrivers[Math.floor(Math.random() * filteredDrivers.length)];
+        const driver = filteredDrivers[0];
+        const priorityGain = 0;
+
+        filteredDrivers.sort(function(a, b) {
+            const moneyFromOrder = order.priority * getDistance(order.PickupLocation, order.DropoffLocation)
+            const aNewPriority = (a.MoneyEarned + moneyFromOrder) / testNewRoute(a, order)[1];
+            const bNewPriority = (b.MoneyEarned + moneyFromOrder) / testNewRoute(b, order)[1];
+
+            return (bNewPriority - b.priority) - (aNewPriority - a.priority);
+        });
 
         // update the driver's ordersAccepted
-        await db.collection('Drivers').doc(driver.id).update({
-            ordersAccepted: admin.firestore.FieldValue.arrayUnion(order.id)
-        });
+
 
         // update order status
 
@@ -93,8 +100,7 @@ exports.updateCurrentOrderAmount = functions.firestore
 // --------------------------------------------------
 // API
 // --------------------------------------------------
-const apiKey = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
-const apiKey1 = "NTUzN2NlYzA1NGRlNDhiNjk3MGMzOTAyNmMzNjYwODE6YjhhOTBkMzUtOTRmMC00ZDM5LTg3MWQtNTc0ZjE0YjZiNjgy";
+const noak = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
 
 function createPlan(driver, order) {
     var body = new Object();
@@ -147,7 +153,7 @@ function createPlan(driver, order) {
 
     const result = fetch("https://api.myptv.com/routeoptimization/v1/plans", {
             method: "POST",
-            headers: { apiKey: apiKey, "Content-Type": "application/json" },
+            headers: { apiKey: noak, "Content-Type": "application/json" },
             body: bodyJSONString,
         })
         .then(response => response.json())
@@ -160,7 +166,7 @@ function optimizePlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id + "/operation/optimization?considerTransportPriorities=true";
     fetch(url, {
         method: "POST",
-        headers: { apiKey: apiKey, "Content-Type": "application/json" }
+        headers: { apiKey: noak, "Content-Type": "application/json" }
     });
 }
 
@@ -169,14 +175,14 @@ async function checkIfPlanIsOptimized(id) {
 
     var result = await (fetch(url, {
             method: "GET",
-            headers: { apiKey: apiKey, "Content-Type": "application/json" },
+            headers: { apiKey: noak, "Content-Type": "application/json" },
         })
         .then(response => response.json()));
 
     while (result["status"] != "SUCCEEDED") {
         result = await (fetch(url, {
                 method: "GET",
-                headers: { apiKey: apiKey, "Content-Type": "application/json" },
+                headers: { apiKey: noak, "Content-Type": "application/json" },
             })
             .then(response => response.json()));
     }
@@ -186,7 +192,7 @@ function getPlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
     const result = fetch(url, {
             method: "GET",
-            headers: { apiKey: apiKey, "Content-Type": "application/json" },
+            headers: { apiKey: noak, "Content-Type": "application/json" },
         })
         .then(response => response.json());
 
@@ -197,7 +203,7 @@ function deletePlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
     fetch(url, {
             method: "DELETE",
-            headers: { apiKey: apiKey, "Content-Type": "application/json" },
+            headers: { apiKey: noak, "Content-Type": "application/json" },
         })
         .then(response => response.json());
 }
@@ -217,7 +223,10 @@ async function testNewRoute(driver, order) {
     optimizePlan(id);
     await checkIfPlanIsOptimized(id);
     getPlan(id).then(result => {
-        return result["routes"][0]["report"]["drivingTime"] - JSON.parse(driver.route)[0]["report"]["drivingTime"];
+        return [
+            result["routes"][0]["report"]["travelTime"] - JSON.parse(driver.route)[0]["report"]["travelTime"],
+            result["routes"][0]["report"]["distance"] - JSON.parse(driver.route)[0]["report"]["distance"]
+        ];
     });
     deletePlan(id);
 }
