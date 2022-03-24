@@ -209,4 +209,15 @@ async function updateRoute(driver, order) {
     getPlan(id).then(result => {
         driver.route = JSON.stringify(result["routes"][0]);
     });
+    deletePlan(id);
+}
+
+async function testNewRoute(driver, order) {
+    const id = await createPlan(driver, order);
+    optimizePlan(id);
+    await checkIfPlanIsOptimized(id);
+    getPlan(id).then(result => {
+        return result["routes"][0]["report"]["drivingTime"] - JSON.parse(driver.route)[0]["report"]["drivingTime"];
+    });
+    deletePlan(id);
 }
