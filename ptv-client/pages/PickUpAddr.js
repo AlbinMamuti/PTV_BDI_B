@@ -9,6 +9,7 @@ const PickUpAddr = () =>{
 
     const [pickTimeStart, setPickTimeStart] = useState("")
     const [pickTimeEnd, setPickTimeEnd] = useState("")
+    const [pickAddress, setPickAddress] = useState("")
     return (
         <div>
             <Grid container spacing={1}>
@@ -25,7 +26,6 @@ const PickUpAddr = () =>{
                 </Grid>
                 <Grid item xs={8}>
                     <TextField
-                        required
                         id="outlined-required"
                         label="Address Line 2"
                         fullWidth
@@ -79,6 +79,7 @@ const PickUpAddr = () =>{
                         />
                 </Grid>
             </Grid>
+            <div></div>
         </div>
     )
 }

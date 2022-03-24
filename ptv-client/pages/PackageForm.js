@@ -1,8 +1,9 @@
 import React, {useState, useContext} from 'react';
-import TextField from '@mui/material/TextField';
-import Grid from '@mui/material/Grid'
-import Typography from '@mui/material/Typography'
 import PickUpAddr from './PickUpAddr'
+import { Button, TextField, Grid, Typography, Stack } from '@mui/material';
+
+import {SendIcon, DeleteIcon} from '@mui/icons-material'
+
 // to get live time
 import AdapterDateFns from '@mui/lab/AdapterDateFns';
 import LocalizationProvider from '@mui/lab/LocalizationProvider';
@@ -33,13 +34,19 @@ const PackageForm = () =>{
                     <Grid item xs={12}>
                     <PickUpAddr></PickUpAddr>
                     </Grid>
-                    
+                    <Grid item xs = {6}>
+                        <Button variant="outlined">Delete</Button>
+                    </Grid>
+                    <Grid item xs = {6}>
+                        <Stack direction="row" justifyContent="end">
+                            <Button variant="contained">Submit</Button>
+                        </Stack>
+                    </Grid>
                 </Grid>
                 
             </LocalizationProvider>
 
         </div>
-        // </LocalizationProvider>
     );
 }
 export default PackageForm;
