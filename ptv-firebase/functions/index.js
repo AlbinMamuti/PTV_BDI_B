@@ -26,12 +26,12 @@ export const roughFilter = functions.firestore
 
 function roughFilter() {
     // 5km radius
-    const geopointPickup = GeoPoint(10, 10);
-    const geopointDriver = GeoPoint(5, 9);
+    const geopointPickup = new admin.firestore.GeoPoint(10, 10);
+    const geopointDriver = new admin.firestore.GeoPoint(5, 9);
 
-    const distance = distance(geopointPickup, geopointDriver);
+    const dist = distance(geopointPickup, geopointDriver);
 
-    return distance
+    return (dist < 5);
 }
 
 function distance(point1, point2) {
@@ -41,4 +41,4 @@ function distance(point1, point2) {
     return distance;
 }
 
-roughFilter()
+console.log(roughFilter())
