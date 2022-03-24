@@ -47,7 +47,7 @@ const PackageForm = () => {
                 <
                 Grid container spacing = { 2 } >
                 <
-                Grid item xs = { 8 } >
+                Grid item xs = { 12 } >
                 <
                 Typography variant = "h5" >
                 Please register the packet you want to be delivered <
