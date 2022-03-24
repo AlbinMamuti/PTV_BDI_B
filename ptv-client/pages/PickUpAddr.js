@@ -11,9 +11,7 @@ import { PickData} from './PackageForm';
 
 const PickUpAddr = () =>{
 
-    const [pickTime, setPickTime] = useState("")
-    const [pickAddress, setPickAddress] = useState("")
-    const [clientPickData, setClientPickData] = useContext(PickData)
+    
 
 
   
