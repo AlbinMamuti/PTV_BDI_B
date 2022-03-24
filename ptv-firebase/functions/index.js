@@ -94,128 +94,119 @@ exports.updateCurrentOrderAmount = functions.firestore
 // API
 // --------------------------------------------------
 const apiKey = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
+const apiKey1 = "NTUzN2NlYzA1NGRlNDhiNjk3MGMzOTAyNmMzNjYwODE6YjhhOTBkMzUtOTRmMC00ZDM5LTg3MWQtNTc0ZjE0YjZiNjgy";
 
-// TODO: create custom plan request
-// {
-//     "locations": [
-//         {
-//             "id": "Depot",
-//             "type": "DEPOT",
-//             "latitude": 49.60804,
-//             "longitude": 6.113033,
-//             "openingIntervals": [
-//                 {
-//                     "start": "2020-12-06T08:00:00+00:00",
-//                     "end": "2020-12-06T18:00:00+00:00"
-//                 }
-//             ]
-//         },
-//         {
-//             "id": "Customer",
-//             "type": "CUSTOMER",
-//             "latitude": 49.609597,
-//             "longitude": 6.097412,
-//             "openingIntervals": [
-//                 {
-//                     "start": "2020-12-06T10:00:00+00:00",
-//                     "end": "2020-12-06T10:00:10+00:00"
-//                 }
-//             ]
-//         }
-//     ],
-//     "vehicles": [
-//         {
-//             "id": "Vehicle1",
-//             "profile": "EUR_TRUCK_40T",
-//             "capacities": [
-//                 500
-//             ],
-//             "startLocationId": "Depot",
-//             "endLocationId": "Depot"
-//         },
-//         {
-//             "id": "Vehicle2",
-//             "profile": "EUR_TRUCK_40T",
-//             "capacities": [
-//                 500
-//             ],
-//             "startLocationId": "Depot",
-//             "endLocationId": "Depot"
-//         }
-//     ],
-//     "transports": [
-//         {
-//             "id": "Transport1",
-//             "quantities": [
-//                 100
-//             ],
-//             "pickupLocationId": "Customer",
-//             "pickupServiceTime": 60,
-//             "deliveryLocationId": "Depot",
-//             "deliveryServiceTime": 60
-//         },
-//         {
-//             "id": "Transport2",
-//             "quantities": [
-//                 100
-//             ],
-//             "pickupLocationId": "Depot",
-//             "pickupServiceTime": 60,
-//             "deliveryLocationId": "Customer",
-//             "deliveryServiceTime": 60
-//         }
-//     ],
-//     "planningHorizon": {
-//         "start": "2020-12-06T00:00:00+00:00",
-//         "end": "2020-12-07T00:00:00+00:00"
-//     }
-// }
-
-function createPlan() {
+function createPlan(driver, order) {
     var body = new Object();
-    body.name = "Raj";
-    body.age = 32;
-    body.married = false;
+
+    body.locations = new Array();
+    body.locations.push({
+        "id": "Start",
+        "latitude": driver.location.latitude,
+        "longitude": driver.location.longitude
+    });
+
+    body.locations.push({
+        "id": "Pickup" + order.id,
+        "latitude": order.Pickup.latitude,
+        "longitude": order.Pickup.longitude
+    });
+
+    body.locations.push({
+        "id": "Dropoff" + order.id,
+        "latitude": order.Dropoff.latitude,
+        "longitude": order.Dropoff.longitude
+    });
+
+    body.vehicles = new Array();
+    body.vehicles.push({
+        "id": "Bicycle",
+        "startLocationId": "Start"
+    });
+
+    body.transports = new Array();
+    body.transports.push({
+        "id": order.id,
+        "pickupLocationId": "Pickup" + order.id,
+        "deliveryLocationId": "Dropoff" + order.id,
+        "priority": order.priority
+    });
 
     body.planningHorizon = {
-        "start": "2020-12-06T00:00:00+00:00",
-        "end": "2020-12-07T00:00:00+00:00"
+        "start": "2020-12-06T00:00:00.0000000+00:00",
+        "end": "2020-12-07T00:00:00.0000000+00:00"
+    }
+
+    body.routes = new Array();
+
+    if (driver.hasOwnProperty('route')) {
+        body.routes.push(JSON.parse(driver.route))
     }
 
     var bodyJSONString = JSON.stringify(body);
 
-    fetch("https://api.myptv.com/routeoptimization/v1/plans", {
+    const result = fetch("https://api.myptv.com/routeoptimization/v1/plans", {
             method: "POST",
             headers: { apiKey: apiKey, "Content-Type": "application/json" },
             body: bodyJSONString,
         })
         .then(response => response.json())
-        .then(result => console.log(result));
+        .then(result => result["id"]);
+
+    return result
 }
 
 function optimizePlan(id) {
-    fetch("https://api.myptv.com/routeoptimization/v1/plans/${id}/operation/optimization", {
-            method: "POST",
-            headers: { apiKey: apiKey, "Content-Type": "application/json" },
-        })
-        .then(response => response.json())
-        .then(result => console.log(result));
+    const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id + "/operation/optimization?considerTransportPriorities=true";
+    fetch(url, {
+        method: "POST",
+        headers: { apiKey: apiKey, "Content-Type": "application/json" }
+    });
 }
 
-function checkIfPlanIsOptimized(id) {
-    fetch("https://api.myptv.com/routeoptimization/v1/plans/${id}/operation", {
+async function checkIfPlanIsOptimized(id) {
+    const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id + "/operation";
+
+    var result = await (fetch(url, {
             method: "GET",
-            headers: { apiKey: "YOUR_API_KEY", "Content-Type": "application/json" },
+            headers: { apiKey: apiKey, "Content-Type": "application/json" },
         })
-        .then(response => response.json())
-        .then(result => console.log(result));
+        .then(response => response.json()));
+
+    while (result["status"] != "SUCCEEDED") {
+        result = await (fetch(url, {
+                method: "GET",
+                headers: { apiKey: apiKey, "Content-Type": "application/json" },
+            })
+            .then(response => response.json()));
+    }
 }
 
 function getPlan(id) {
-    fetch("https://api.myptv.com/routeoptimization/v1/plans/${id}", {
+    const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
+    const result = fetch(url, {
             method: "GET",
-            headers: { apiKey: "YOUR_API_KEY", "Content-Type": "application/json" },
+            headers: { apiKey: apiKey, "Content-Type": "application/json" },
         })
-        .then(response => response.json())
-        .then(result => console.log(result));
+        .then(response => response.json());
+
+    return result;
+}
+
+function deletePlan(id) {
+    const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
+    fetch(url, {
+            method: "DELETE",
+            headers: { apiKey: apiKey, "Content-Type": "application/json" },
+        })
+        .then(response => response.json());
+}
+
+async function updateRoute(driver, order) {
+    const id = await createPlan(driver, order);
+    optimizePlan(id);
+    await checkIfPlanIsOptimized(id);
+    getPlan(id).then(result => {
+        driver.route = JSON.stringify(result["routes"][0]);
+    });
 }
