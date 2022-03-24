@@ -13,6 +13,11 @@ import { TimePicker } from '@mui/lab';
 
 const PackageForm = () =>{
 
+    const [description, setDescription] = useState("")
+
+    const insertDB = () =>{
+        console.log("Es funktionaglet")
+    }
 
     return(
         // <LocalizationProvider DateAdapter={DateAdapter}>
@@ -27,6 +32,9 @@ const PackageForm = () =>{
                         required
                         id="outlined-required"
                         label="Packet-Description"
+                        onChange={(newValue) => {
+                            setDescription(newValue);
+                        }}
                         fullWidth
                         />
                     </Grid>
@@ -39,7 +47,10 @@ const PackageForm = () =>{
                     </Grid>
                     <Grid item xs = {6}>
                         <Stack direction="row" justifyContent="end">
-                            <Button variant="contained">Submit</Button>
+                            <Button 
+                            variant="contained"
+                            onClick={insertDB}
+                            >Submit</Button>
                         </Stack>
                     </Grid>
                 </Grid>
