@@ -5,20 +5,15 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
-// Hello World
-exports.helloWorld = functions.https.onRequest((request, response) => {
-    functions.logger.info("Hello logs!", { structuredData: true });
-    response.send("Hello from Firebase!");
-});
+const db = admin.firestore();
 
 
-exports.createNewObject = functions.firestore
-    .document('orders/{orderId}')
-    .onCreate(async(snapshot, context) => {
-        const data = snapshot.data();
-        const order = data.order;
-        functions.logger.info(orderId);
-        const filteredData = roughFilter(data);
+exports.createNewOrder = functions.firestore
+    .document('Orders/{orderId}')
+    .onCreate(async(snap, context) => {
+        const order = snap.data();
+        const filteredDrivers = await roughDriverFilter(order);
+
 
     });
 
@@ -28,23 +23,39 @@ exports.createNewObject = functions.firestore
 // --------------------------------------------------
 // exclude driver that are more than 5km away
 // exclude driver with more than 5 orders
-// exclude driver with priority > TODO: set value
+// only include drivers with worst 10 ratings
 
-function roughFilter() {
-    // 5km radius
-    const geopointPickup = new admin.firestore.GeoPoint(10, 10);
-    const geopointDriver = new admin.firestore.GeoPoint(5, 9);
+async function roughDriverFilter(order) {
+    const geopointPickup = order.Pickup;
 
-    const dist = distance(geopointPickup, geopointDriver);
+    var drivers = [];
 
-    return (dist < 5);
+    // filter number of orders
+    const query = await db.collection('Drivers').where('ordersAccepted', '<', 5).get();
+
+    // filter based on distance
+    query.docs.forEach(doc => {
+        const driver = doc.data();
+        const distance = getDistance(geopointPickup, driver.location);
+
+        if (distance < 5) {
+            drivers.push(driver);
+        }
+    });
+
+    // only return 10 drivers with the lowest score
+    drivers.sort(function(a, b) {
+        return a.priority - b.priority
+    });
+
+    drivers.length = Math.min(drivers.length, 10);
+
+    return drivers;
 }
 
-function distance(point1, point2) {
+function getDistance(point1, point2) {
     const diffLat = point1.latitude - point2.latitude;
     const diffLng = point1.longitude - point2.longitude;
     const distance = Math.pow(Math.pow(diffLat, 2) + Math.pow(diffLng, 2), 0.5);
     return distance;
 }
-
-console.log(roughFilter())
