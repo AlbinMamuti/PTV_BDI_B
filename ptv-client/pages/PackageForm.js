@@ -6,11 +6,17 @@ import Select from "@mui/material/Select";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 
+
 import TimePicker from "@mui/lab/TimePicker";
 
 import { Button, TextField, Grid, Typography, Stack } from "@mui/material";
 
 import { SendIcon, DeleteIcon } from "@mui/icons-material";
+
+import { app, db, GeoPoint } from '../firebase/initFirebase.js'
+import { collection, addDoc } from "firebase/firestore"; 
+
+
 
 // to get live time
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
@@ -29,9 +35,32 @@ const PackageForm = () => {
   const [pickZIP, setPickZIP] = useState("");
   const [pickState, setPickState] = useState("");
 
-  const insertDB = () => {
-    const pickupAddress = pickAddress1 + "\n" + pickAddress2 + "\n" + pickCity + "\n" + pickState + "\n" + pickZIP;
-    console.log(pickupAddress);
+  const [dropTimeStart, setDropTimeStart] = useState("");
+  const [dropTimeEnd, setDropTimeEnd] = useState("");
+  const [dropAddress1, setDropAddress1] = useState("");
+  const [dropAddress2, setDropAddress2] = useState("");
+  const [dropCity, setDropCity] = useState("");
+  const [dropZIP, setDropZIP] = useState("");
+  const [dropState, setDropState] = useState("");
+
+  const insertDB = async () => {
+    const pickupAddress = pickAddress1 + ", " + pickAddress2 + "," + pickCity + " " + pickZIP + ", " + pickState;
+    const pickupCoords = await getCoordinates(pickupAddress);
+    const pickupLocation = new GeoPoint(pickupCoords.latitude, pickupCoords.longitude);
+
+    const dropoffAddress = dropAddress1 + ", " + dropAddress2 + "," + dropCity + " " + dropZIP + ", " + dropState;
+    const dropoffCoords = await getCoordinates(pickupAddress);
+    const dropoffLocation = new GeoPoint(dropoffCoords.latitude, dropoffCoords.longitude);
+
+    await addDoc(collection(db, "Orders"), {
+      ClientID: "1",
+      Description: description,
+      Priority: pickupPriority,
+      PickupLocation: pickupLocation,
+      DropoffLocation: dropoffLocation,
+      Status: 0,
+    });
+
   };
 
   const handleChange = (event) => {
@@ -63,9 +92,9 @@ const PackageForm = () => {
           <Grid item xs={4}></Grid>
           <Grid item xs={12}>
             <Grid container spacing={1}>
-              <Grid item xs={12}>
-                <Typography variant="h4">PickUp-Addr</Typography>
-              </Grid>
+              <div style={{ marginTop: "12px" }}>
+                  <Typography variant="h4">PickUp-Addr</Typography>
+                </div>
               {/* begin pickup address form */}
               <Grid item xs={8}>
                 <TextField
@@ -121,31 +150,70 @@ const PackageForm = () => {
                   fullWidth
                 />
               </Grid>
-              <Grid item xs={6}>
-                <TimePicker
-                  label="PickupTime Start"
-                  value={pickTimeStart.start}
+            </Grid>
+            {/* end pickup form */}
+            <Grid container spacing={1}>
+              <Grid item xs={12}>
+                <div style={{ marginTop: "20px" }}>
+                  <Typography variant="h4">DropOff-Addr</Typography>
+                </div>
+              </Grid>
+              {/* begin pickup address form */}
+              <Grid item xs={8}>
+                <TextField
+                  required
+                  id="outlined-required"
+                  label="Address Line 1"
                   onChange={(event) => {
-                    setPickTimeStart(event);
+                    setDropAddress1(event.target.value);
                   }}
-                  renderInput={(params) => <TextField {...params} />}
+                  fullWidth
                 />
               </Grid>
-              {/* <Grid item xs = {1}>
-                    <Typography variant='h5'>to</Typography>
-                </Grid> */}
-              <Grid item xs={6}>
-                <TimePicker
-                  label="PickupTime End"
-                  value={pickTimeEnd.start}
+              <Grid item xs={8}>
+                <TextField
+                  id="outlined-required"
+                  label="Address Line 2"
                   onChange={(event) => {
-                    setPickTimeEnd(event);
+                    setDropAddress2(event.target.value);
                   }}
-                  renderInput={(params) => <TextField {...params} />}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={8}>
+                <TextField
+                  required
+                  id="outlined-required"
+                  label="City"
+                  onChange={(event) => {
+                    setDropCity(event.target.value);
+                  }}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  required
+                  id="outlined-required"
+                  label="State"
+                  onChange={(event) => {
+                    setDropState(event.target.value);
+                  }}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField
+                  required
+                  id="outlined-required"
+                  label="ZIP"
+                  onChange={(event) => {
+                    setDropZIP(event.target.value);
+                  }}
+                  fullWidth
                 />
               </Grid>
             </Grid>
-            {/* end pickup form */}
           </Grid>
           <Grid item xs={12}>
             <Stack direction="row" justifyContent="center">
@@ -185,7 +253,7 @@ const PackageForm = () => {
           </Grid>
           <Grid item xs={6}>
             <Stack direction="row" justifyContent="end">
-              <Button variant="contained" onClick={insertDB}>
+              <Button style={{ marginBottom: "30px" }} variant="contained" onClick={insertDB}>
                 Submit
               </Button>
             </Stack>
@@ -195,4 +263,18 @@ const PackageForm = () => {
     </div>
   );
 };
+
+const noak = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
+
+function getCoordinates(address) {
+  return fetch("https://api.myptv.com/geocoding/v1/locations/by-text?searchText=" + address, {
+        method: "GET",
+        headers: { apiKey: noak, "Content-Type": "application/json" },
+    })
+    .then(response => response.json())
+    .then(result => {
+      return result.locations[0]["roadAccessPosition"];
+    });
+}
+
 export default PackageForm;

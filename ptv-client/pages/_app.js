@@ -3,7 +3,6 @@ import PackageForm from './PackageForm'
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 
-
 function MyApp({ Component, pageProps }) {
   
   return(
@@ -11,7 +10,6 @@ function MyApp({ Component, pageProps }) {
       <Typography variant="h2">Delivery Service</Typography>
       <PackageForm/>
     </Container>
-    
   )
 }
 
