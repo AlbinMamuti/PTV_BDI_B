@@ -16,11 +16,7 @@ exports.newOrder = functions.firestore
         const order = snap.data();
         const filteredDrivers = await roughDriverFilter(order);
 
-        // select one driver from the filtered list
-        // TODO: select driver based on score
-        const driver = filteredDrivers[0];
-        const priorityGain = 0;
-
+        // order drivers from the filtered list by possible gain
         filteredDrivers.sort(function(a, b) {
             const moneyFromOrder = order.priority * getDistance(order.PickupLocation, order.DropoffLocation)
             const aNewPriority = (a.MoneyEarned + moneyFromOrder) / testNewRoute(a, order)[1];
@@ -28,12 +24,20 @@ exports.newOrder = functions.firestore
 
             return (bNewPriority - b.priority) - (aNewPriority - a.priority);
         });
-
+    
         // update the driver's ordersAccepted
+        filteredDrivers.forEach(driver => {
+            if (order.status == 0) {
+                driver.routeNew = testNewRoute(driver, order);
 
+                while(driver.flag == 0) {}
 
-        // update order status
-
+                if(driver.flag == 2) {
+                    driver.route = updateRoute(driver, order);
+                    order.status = 1;
+                }
+            }
+        });        
 
         return Promise.resolve();
     });
