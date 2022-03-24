@@ -5,6 +5,9 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
+// Import fetch for Node.js
+const fetch = require('node-fetch');
+
 const db = admin.firestore();
 
 exports.newOrder = functions.firestore
@@ -25,7 +28,7 @@ exports.newOrder = functions.firestore
         // update order status
 
 
-
+        return Promise.resolve();
     });
 
 // --------------------------------------------------
@@ -83,10 +86,136 @@ exports.updateCurrentOrderAmount = functions.firestore
         change.after.ref.update({
             CurrentOrdersAmount: newOrderAmount
         });
+
+        return Promise.resolve();
     });
 
 // --------------------------------------------------
 // API
 // --------------------------------------------------
 const apiKey = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
-const baseURLplan = "https://api.myptv.com/routeoptimization/v1/plans"
+
+// TODO: create custom plan request
+// {
+//     "locations": [
+//         {
+//             "id": "Depot",
+//             "type": "DEPOT",
+//             "latitude": 49.60804,
+//             "longitude": 6.113033,
+//             "openingIntervals": [
+//                 {
+//                     "start": "2020-12-06T08:00:00+00:00",
+//                     "end": "2020-12-06T18:00:00+00:00"
+//                 }
+//             ]
+//         },
+//         {
+//             "id": "Customer",
+//             "type": "CUSTOMER",
+//             "latitude": 49.609597,
+//             "longitude": 6.097412,
+//             "openingIntervals": [
+//                 {
+//                     "start": "2020-12-06T10:00:00+00:00",
+//                     "end": "2020-12-06T10:00:10+00:00"
+//                 }
+//             ]
+//         }
+//     ],
+//     "vehicles": [
+//         {
+//             "id": "Vehicle1",
+//             "profile": "EUR_TRUCK_40T",
+//             "capacities": [
+//                 500
+//             ],
+//             "startLocationId": "Depot",
+//             "endLocationId": "Depot"
+//         },
+//         {
+//             "id": "Vehicle2",
+//             "profile": "EUR_TRUCK_40T",
+//             "capacities": [
+//                 500
+//             ],
+//             "startLocationId": "Depot",
+//             "endLocationId": "Depot"
+//         }
+//     ],
+//     "transports": [
+//         {
+//             "id": "Transport1",
+//             "quantities": [
+//                 100
+//             ],
+//             "pickupLocationId": "Customer",
+//             "pickupServiceTime": 60,
+//             "deliveryLocationId": "Depot",
+//             "deliveryServiceTime": 60
+//         },
+//         {
+//             "id": "Transport2",
+//             "quantities": [
+//                 100
+//             ],
+//             "pickupLocationId": "Depot",
+//             "pickupServiceTime": 60,
+//             "deliveryLocationId": "Customer",
+//             "deliveryServiceTime": 60
+//         }
+//     ],
+//     "planningHorizon": {
+//         "start": "2020-12-06T00:00:00+00:00",
+//         "end": "2020-12-07T00:00:00+00:00"
+//     }
+// }
+
+function createPlan() {
+    var body = new Object();
+    body.name = "Raj";
+    body.age = 32;
+    body.married = false;
+
+    body.planningHorizon = {
+        "start": "2020-12-06T00:00:00+00:00",
+        "end": "2020-12-07T00:00:00+00:00"
+    }
+
+    var bodyJSONString = JSON.stringify(body);
+
+    fetch("https://api.myptv.com/routeoptimization/v1/plans", {
+            method: "POST",
+            headers: { apiKey: apiKey, "Content-Type": "application/json" },
+            body: bodyJSONString,
+        })
+        .then(response => response.json())
+        .then(result => console.log(result));
+}
+
+function optimizePlan(id) {
+    fetch("https://api.myptv.com/routeoptimization/v1/plans/${id}/operation/optimization", {
+            method: "POST",
+            headers: { apiKey: apiKey, "Content-Type": "application/json" },
+        })
+        .then(response => response.json())
+        .then(result => console.log(result));
+}
+
+function checkIfPlanIsOptimized(id) {
+    fetch("https://api.myptv.com/routeoptimization/v1/plans/${id}/operation", {
+            method: "GET",
+            headers: { apiKey: "YOUR_API_KEY", "Content-Type": "application/json" },
+        })
+        .then(response => response.json())
+        .then(result => console.log(result));
+}
+
+function getPlan(id) {
+    fetch("https://api.myptv.com/routeoptimization/v1/plans/${id}", {
+            method: "GET",
+            headers: { apiKey: "YOUR_API_KEY", "Content-Type": "application/json" },
+        })
+        .then(response => response.json())
+        .then(result => console.log(result));
+}
