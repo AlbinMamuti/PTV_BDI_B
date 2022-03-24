@@ -49,7 +49,7 @@ const PackageForm = () => {
     const pickupLocation = new GeoPoint(pickupCoords.latitude, pickupCoords.longitude);
 
     const dropoffAddress = dropAddress1 + ", " + dropAddress2 + "," + dropCity + " " + dropZIP + ", " + dropState;
-    const dropoffCoords = await getCoordinates(pickupAddress);
+    const dropoffCoords = await getCoordinates(dropoffAddress);
     const dropoffLocation = new GeoPoint(dropoffCoords.latitude, dropoffCoords.longitude);
 
     await addDoc(collection(db, "Orders"), {
