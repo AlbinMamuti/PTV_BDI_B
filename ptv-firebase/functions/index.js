@@ -5,17 +5,23 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
-/* import * as functions from 'firebase-functions';
+// Hello World
+exports.helloWorld = functions.https.onRequest((request, response) => {
+    functions.logger.info("Hello logs!", { structuredData: true });
+    response.send("Hello from Firebase!");
+});
 
-export const roughFilter = functions.firestore
-    .document('...')
+
+exports.createNewObject = functions.firestore
+    .document('orders/{orderId}')
     .onCreate(async(snapshot, context) => {
         const data = snapshot.data();
+        const order = data.order;
+        functions.logger.info(orderId);
         const filteredData = roughFilter(data);
 
-
     });
-*/
+
 
 // --------------------------------------------------
 // Rough Filter
