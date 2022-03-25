@@ -49,11 +49,17 @@ exports.newOrder = functions.firestore
             Flag: 0
         }, { merge: true });
 
-        while (driver.data().Flag == 0) {}
+        while (driver.data().Flag == 0) {
+            await sleep(2000);
+        }
 
         if (driver.data().Flag == 2) {
             await db.collection('Drivers').doc(driver.id).set({
                 Rout: updateRoute(driver.data(), order)
+            }, { merge: true });
+
+            await db.collection('Orders').doc(context.id).set({
+                Status: 1
             }, { merge: true });
         }
 
