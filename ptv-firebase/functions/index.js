@@ -10,6 +10,20 @@ admin.initializeApp();
 const db = admin.firestore();
 
 
+/*
+ * FLAG:
+ * 0 - waiting for driver to accept / decline new route
+ * 1 - driver declined new route
+ * 2 - driver accepted new route
+ * 3 - no new route
+ * 
+ * Status:
+ * 0 - waiting for drivers to accept / decline order
+ * 1 - driver accepted order, put hasn't picket it up
+ * 2 - driver picked up order
+ * 3 - driver delivered order
+ */
+
 // Function that automatically updates the CurrentOrdersAmount of a driver
 // after he delivers a order or accepts a new one
 exports.updateCurrentOrderAmount = functions.firestore
