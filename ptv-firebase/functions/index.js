@@ -28,12 +28,12 @@ exports.newOrder = functions.firestore
         // update the driver's ordersAccepted
         filteredDrivers.forEach(driver => {
             if (order.status == 0) {
-                driver.routeNew = testNewRoute(driver, order);
+                driver.routeNew = await testNewRoute(driver, order);
 
                 while(driver.flag == 0) {}
 
                 if(driver.flag == 2) {
-                    driver.route = updateRoute(driver, order);
+                    updateRoute(driver, order);
                     order.status = 1;
                 }
             }
