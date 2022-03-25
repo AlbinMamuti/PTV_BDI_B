@@ -7,7 +7,6 @@ import Typography from "@mui/material/Typography";
 function MyApp({ Component, pageProps }) {
   return (
     <Container maxWidth="sm">
-      <Typography variant="h2">Delivery Service</Typography>
       <PackageForm />
     </Container>
   );

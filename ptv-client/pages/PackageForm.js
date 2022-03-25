@@ -136,6 +136,9 @@ const PackageForm = () => {
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <Grid container spacing={2}>
           <Grid item xs={12}>
+            <img src="logo.png" width="90%" height="auto" />
+          </Grid>
+          <Grid item xs={12}>
             <Typography variant="h5">
               Please register the packet you want to be delivered
             </Typography>
