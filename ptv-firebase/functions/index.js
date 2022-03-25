@@ -9,11 +9,12 @@ const admin = require('firebase-admin');
 admin.initializeApp();
 const db = admin.firestore();
 
+
 // Function that automatically updates the CurrentOrdersAmount of a driver
 // after he delivers a order or accepts a new one
 exports.updateCurrentOrderAmount = functions.firestore
     .document('Drivers/{driverId}')
-    .onUpdate((change, context) => {
+    .onUpdate((change, _) => {
         const driver = change.after.data()
         const newOrderAmount = driver.Orders.length;
 
@@ -24,9 +25,10 @@ exports.updateCurrentOrderAmount = functions.firestore
         return Promise.resolve();
     });
 
+
 exports.newOrder = functions.firestore
     .document('Orders/{orderId}')
-    .onCreate(async(snap, context) => {
+    .onCreate(async(snap, _) => {
         const order = snap.data();
         const filteredDrivers = await roughDriverFilter(order);
 
@@ -42,7 +44,7 @@ exports.newOrder = functions.firestore
         const driver = filteredDrivers[0];
 
         await db.collection('Drivers').doc(driver.id).set({
-            NewRoute: await testNewRoute(driver.data(), order)
+            NewRoute: await updateRoute(driver.data(), order)
         }, { merge: true });
 
         await db.collection('Drivers').doc(driver.id).set({
@@ -79,6 +81,7 @@ exports.newOrder = functions.firestore
 
         return Promise.resolve();
     });
+
 
 // --------------------------------------------------
 // Rough Filter
@@ -121,17 +124,19 @@ function getDistance(point1, point2) {
     return Math.pow(Math.pow(diffLat, 2) + Math.pow(diffLng, 2), 0.5);
 }
 
-// --------------------------------------------------
-// API Requests
-// --------------------------------------------------
+
+// -----------------------
+// API Requests and Stuff
+// -----------------------
 const saf24nvoe38 = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
 
 function createPlan(driver, order) {
     var body = new Object();
 
-    body.routes = new Array();
     body.locations = new Array();
+    body.vehicles = new Array();
     body.transports = new Array();
+    body.routes = new Array();
 
     if (driver['Route'] != "") {
         const plan = JSON.parse(driver.Route);
@@ -158,12 +163,10 @@ function createPlan(driver, order) {
         "longitude": order.DropoffLocation.longitude
     });
 
-    body.vehicles = new Array();
     body.vehicles.push({
         "id": "Bicycle",
         "startLocationId": "Start"
     });
-
 
     body.transports.push({
         "id": order.Description,
@@ -177,17 +180,15 @@ function createPlan(driver, order) {
         "end": "2022-12-07T00:00:00.0000000+00:00"
     }
 
-    var bodyJSONString = JSON.stringify(body);
+    const bodyJSONString = JSON.stringify(body);
 
-    const result = fetch("https://api.myptv.com/routeoptimization/v1/plans", {
+    return fetch("https://api.myptv.com/routeoptimization/v1/plans", {
             method: "POST",
             headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
             body: bodyJSONString,
         })
         .then(response => response.json())
         .then(result => result["id"]);
-
-    return result
 }
 
 function optimizePlan(id) {
@@ -218,13 +219,11 @@ async function checkIfPlanIsOptimized(id) {
 
 function getPlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
-    const result = fetch(url, {
+    return fetch(url, {
             method: "GET",
             headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
         })
         .then(response => response.json());
-
-    return result;
 }
 
 function deletePlan(id) {
@@ -238,88 +237,8 @@ function deletePlan(id) {
 
 async function updateRoute(driver, order) {
     const id = await createPlan(driver, order);
+
     optimizePlan(id);
     await checkIfPlanIsOptimized(id);
     return getPlan(id).then(result => JSON.stringify(result));
-
-    // deletePlan(id);
 }
-
-async function testNewRoute(driver, order) {
-    const id = await createPlan(driver, order);
-    optimizePlan(id);
-    await checkIfPlanIsOptimized(id);
-    return getPlan(id).then(result => JSON.stringify(result));
-    //deletePlan(id);
-}
-
-// async function customRoute() {
-//     const order1 = {
-//         "DropoffLocation": {
-//             "latitude": 47.45920181274414,
-//             "longitude": 9.393150329589844
-//         },
-//         "Status": 0,
-//         "Priority": 6,
-//         "Description": "teadtsgasg",
-//         "PickupLocation": {
-//             "latitude": 47.43537139892578,
-//             "longitude": 9.3860502243042
-//         },
-//         "ClientID": "1"
-//     };
-
-//     const order2 = {
-//         "Status": 0,
-//         "Description": "Ramen",
-//         "Priority": 1,
-//         "PickupLocation": {
-//             "latitude": 47.42702865600586,
-//             "longitude": 9.375149726867676
-//         },
-//         "DropoffLocation": {
-//             "latitude": 47.42802047729492,
-//             "longitude": 9.38125991821289
-//         },
-//         "ClientID": "1"
-//     };
-
-//     const order3 = {
-//         "ClientID": "1",
-//         "PickupLocation": {
-//             "latitude": 47.43410110473633,
-//             "longitude": 9.386520385742188
-//         },
-//         "DropoffLocation": {
-//             "latitude": 47.43275833129883,
-//             "longitude": 9.378490447998047
-//         },
-//         "Description": "Pizza",
-//         "Priority": 3,
-//         "Status": 0
-//     };
-
-//     var driver = {
-//         "Orders": [
-//             "projects/ptvhack22/databases/(default)/documents/Orders/KMYG29vVFNjIFdjWYG1i"
-//         ],
-//         "DistanceTravelled": 10.5,
-//         "MoneyEarned": 65.75,
-//         "CurrentOrdersAmount": 1,
-//         "Name": "Albin",
-//         "Email": "albinmamuti00@gmail.com",
-//         "Route": "",
-//         "Location": {
-//             "latitude": 47.43364,
-//             "longitude": 9.384147
-//         },
-//         "Priority": 0
-//     };
-
-//     driver.Route = await updateRoute(driver, order1);
-//     driver.Route = await updateRoute(driver, order2);
-//     driver.Route = await updateRoute(driver, order3);
-//     console.log(driver.Route);
-// }
-
-// customRoute();
