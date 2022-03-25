@@ -49,19 +49,19 @@ exports.newOrder = functions.firestore
             Flag: 0
         }, { merge: true });
 
-        while (driver.data().Flag == 0) {
-            await sleep(2000);
-        }
+        // while (driver.data().Flag == 0) {
+        //     await sleep(2000);
+        // }
 
-        if (driver.data().Flag == 2) {
-            await db.collection('Drivers').doc(driver.id).set({
-                Rout: updateRoute(driver.data(), order)
-            }, { merge: true });
+        // if (driver.data().Flag == 2) {
+        //     await db.collection('Drivers').doc(driver.id).set({
+        //         Rout: updateRoute(driver.data(), order)
+        //     }, { merge: true });
 
-            await db.collection('Orders').doc(context.id).set({
-                Status: 1
-            }, { merge: true });
-        }
+        //     await db.collection('Orders').doc(context.id).set({
+        //         Status: 1
+        //     }, { merge: true });
+        // }
 
         // // update the driver's ordersAccepted
         // filteredDrivers.forEach(async driver => {
@@ -90,8 +90,7 @@ exports.newOrder = functions.firestore
 // @returns {Array} of drivers sorted by priority
 
 async function roughDriverFilter(order) {
-    // const geopointPickup = order.PickupLocation;
-
+    const geopointPickup = order.PickupLocation;
     var drivers = [];
 
     // filter number of orders
@@ -99,8 +98,8 @@ async function roughDriverFilter(order) {
 
     // filter based on distance
     query.docs.forEach(doc => {
-        // const driver = doc.data();
-        // const distance = getDistance(geopointPickup, driver.Location);
+        const driver = doc.data();
+        const distance = getDistance(geopointPickup, driver.Location);
 
         // if (distance < 5) {
         drivers.push(doc);
@@ -113,21 +112,19 @@ async function roughDriverFilter(order) {
     });
 
     drivers.length = Math.min(drivers.length, 10);
-
     return drivers;
 }
 
 function getDistance(point1, point2) {
     const diffLat = point1.latitude - point2.latitude;
     const diffLng = point1.longitude - point2.longitude;
-    const distance = Math.pow(Math.pow(diffLat, 2) + Math.pow(diffLng, 2), 0.5);
-    return distance;
+    return Math.pow(Math.pow(diffLat, 2) + Math.pow(diffLng, 2), 0.5);
 }
 
 // --------------------------------------------------
 // API Requests
 // --------------------------------------------------
-const noak = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
+const saf24nvoe38 = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
 
 function createPlan(driver, order) {
     var body = new Object();
@@ -176,15 +173,15 @@ function createPlan(driver, order) {
     });
 
     body.planningHorizon = {
-        "start": "2020-12-06T00:00:00.0000000+00:00",
-        "end": "2020-12-07T00:00:00.0000000+00:00"
+        "start": "2022-12-06T00:00:00.0000000+00:00",
+        "end": "2022-12-07T00:00:00.0000000+00:00"
     }
 
     var bodyJSONString = JSON.stringify(body);
 
     const result = fetch("https://api.myptv.com/routeoptimization/v1/plans", {
             method: "POST",
-            headers: { apiKey: noak, "Content-Type": "application/json" },
+            headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
             body: bodyJSONString,
         })
         .then(response => response.json())
@@ -197,7 +194,7 @@ function optimizePlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id + "/operation/optimization?considerTransportPriorities=true";
     fetch(url, {
         method: "POST",
-        headers: { apiKey: noak, "Content-Type": "application/json" }
+        headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" }
     });
 }
 
@@ -206,14 +203,14 @@ async function checkIfPlanIsOptimized(id) {
 
     var result = await (fetch(url, {
             method: "GET",
-            headers: { apiKey: noak, "Content-Type": "application/json" },
+            headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
         })
         .then(response => response.json()));
 
     while (result["status"] != "SUCCEEDED") {
         result = await (fetch(url, {
                 method: "GET",
-                headers: { apiKey: noak, "Content-Type": "application/json" },
+                headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
             })
             .then(response => response.json()));
     }
@@ -223,7 +220,7 @@ function getPlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
     const result = fetch(url, {
             method: "GET",
-            headers: { apiKey: noak, "Content-Type": "application/json" },
+            headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
         })
         .then(response => response.json());
 
@@ -234,7 +231,7 @@ function deletePlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
     fetch(url, {
             method: "DELETE",
-            headers: { apiKey: noak, "Content-Type": "application/json" },
+            headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
         })
         .then(response => response.json());
 }
@@ -258,56 +255,53 @@ async function testNewRoute(driver, order) {
 
 // async function customRoute() {
 //     const order1 = {
-//         "id": "1",
-//         "Status": 0,
-//         "PickupLocation": {
-//           "latitude": 47.415191650390625,
-//           "longitude": 8.546640396118164
-//         },
 //         "DropoffLocation": {
-//           "latitude": 47.37395095825195,
-//           "longitude": 8.54990005493164
+//             "latitude": 47.45920181274414,
+//             "longitude": 9.393150329589844
 //         },
-//         "Description": "PacketN",
-//         "ClientID": "1",
-//         "Priority": 6
-//       };
+//         "Status": 0,
+//         "Priority": 6,
+//         "Description": "teadtsgasg",
+//         "PickupLocation": {
+//             "latitude": 47.43537139892578,
+//             "longitude": 9.3860502243042
+//         },
+//         "ClientID": "1"
+//     };
 
 //     const order2 = {
-//         "id": "2",
-//         "PickupLocation": {
-//             "latitude": 47.43510110473633,
-//             "longitude": 9.386520385742188
-//           },
-//         "DropoffLocation": {
-//           "latitude": 47.42802047729492,
-//           "longitude": 9.38125991821289
-//         },
-//         "Description": "Ramen",
-//         "ClientID": "1",
 //         "Status": 0,
-//         "Priority": 1
-//       };
+//         "Description": "Ramen",
+//         "Priority": 1,
+//         "PickupLocation": {
+//             "latitude": 47.42702865600586,
+//             "longitude": 9.375149726867676
+//         },
+//         "DropoffLocation": {
+//             "latitude": 47.42802047729492,
+//             "longitude": 9.38125991821289
+//         },
+//         "ClientID": "1"
+//     };
 
 //     const order3 = {
-//         "id": "3",
-//         "DropoffLocation": {
-//           "latitude": 47.43275833129883,
-//           "longitude": 9.378490447998047
-//         },
-//         "Status": 0,
-//         "Description": "Pizza",
 //         "ClientID": "1",
 //         "PickupLocation": {
-//           "latitude": 47.43410110473633,
-//           "longitude": 9.386520385742188
+//             "latitude": 47.43410110473633,
+//             "longitude": 9.386520385742188
 //         },
-//         "Priority": 3
-//       };
+//         "DropoffLocation": {
+//             "latitude": 47.43275833129883,
+//             "longitude": 9.378490447998047
+//         },
+//         "Description": "Pizza",
+//         "Priority": 3,
+//         "Status": 0
+//     };
 
-//       var driver = {
+//     var driver = {
 //         "Orders": [
-//           "projects/ptvhack22/databases/(default)/documents/Orders/KMYG29vVFNjIFdjWYG1i"
+//             "projects/ptvhack22/databases/(default)/documents/Orders/KMYG29vVFNjIFdjWYG1i"
 //         ],
 //         "DistanceTravelled": 10.5,
 //         "MoneyEarned": 65.75,
@@ -316,17 +310,16 @@ async function testNewRoute(driver, order) {
 //         "Email": "albinmamuti00@gmail.com",
 //         "Route": "",
 //         "Location": {
-//           "latitude": 47.43364,
-//           "longitude": 9.384147
+//             "latitude": 47.43364,
+//             "longitude": 9.384147
 //         },
 //         "Priority": 0
-//       };
+//     };
 
-//       driver.Route = await updateRoute(driver, order1);
-//       driver.Route = await updateRoute(driver, order2);
-//       driver.Route = await updateRoute(driver, order3);
-//       const json = JSON.parse(driver.Route);
-//       console.log(json.routes[0].stops);
-//   }
+//     driver.Route = await updateRoute(driver, order1);
+//     driver.Route = await updateRoute(driver, order2);
+//     driver.Route = await updateRoute(driver, order3);
+//     console.log(driver.Route);
+// }
 
 // customRoute();
