@@ -1,16 +1,16 @@
-import '../styles/globals.css'
-import PackageForm from './PackageForm'
-import Container from '@mui/material/Container'
-import Typography from '@mui/material/Typography'
+import "../styles/globals.css";
+import React from "react";
+import PackageForm from "./PackageForm";
+import Container from "@mui/material/Container";
+import Typography from "@mui/material/Typography";
 
 function MyApp({ Component, pageProps }) {
-  
-  return(
-    <Container maxWidth="sm" >
+  return (
+    <Container maxWidth="sm">
       <Typography variant="h2">Delivery Service</Typography>
-      <PackageForm/>
+      <PackageForm />
     </Container>
-  )
+  );
 }
 
-export default MyApp
+export default MyApp;

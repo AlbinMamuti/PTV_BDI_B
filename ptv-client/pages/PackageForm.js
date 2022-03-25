@@ -1,5 +1,5 @@
 import React, { useState, useContext, createContext } from "react";
-import PickUpAddr from "./PickUpAddr";
+// import PickUpAddr from "./PickUpAddr";
 import FormHelperText from "@mui/material/FormHelperText";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
@@ -10,17 +10,28 @@ import TimePicker from "@mui/lab/TimePicker";
 
 import { Button, TextField, Grid, Typography, Stack } from "@mui/material";
 
-import { SendIcon, DeleteIcon } from "@mui/icons-material";
+import style from "./style.module.css";
 
+// Firebase
 import { app, db, GeoPoint } from "../firebase/initFirebase.js";
 import { collection, addDoc } from "firebase/firestore";
 
 // to get live time
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import LocalizationProvider from "@mui/lab/LocalizationProvider";
+import { color } from "@mui/system";
+// import { style } from "@mui/system";
+
+// const useStyles = makeStyles({
+//   button: { color: "#8EEDF7" },
+//   textInput: {},
+// });
 
 const PackageForm = () => {
   //   const [clientPickData, setClientPickData] = useState("");
+
+  // for styles
+  // const classes = useStyles();
 
   const [description, setDescription] = useState("");
   const [pickupPriority, setPickupPriority] = useState("");
@@ -51,8 +62,10 @@ const PackageForm = () => {
       pickZIP +
       ", " +
       pickState;
-    const pickupCoords = await getCoordinates(pickupAddress);
+
     try {
+      const pickupCoords = await getCoordinates(pickupAddress);
+
       const pickupLocation = new GeoPoint(
         pickupCoords.latitude,
         pickupCoords.longitude
@@ -130,6 +143,7 @@ const PackageForm = () => {
           <Grid item xs={8}>
             <TextField
               required
+              borderColor="#484349"
               id="outlined-required"
               label="Packet-Description"
               onChange={(event) => {
@@ -320,16 +334,21 @@ const PackageForm = () => {
             </Stack>
           </Grid>
           <Grid item xs={6}>
-            <Button variant="outlined" onClick={deleteForm}>
+            <Button
+              style={{ backgroundColor: "#484349" }}
+              variant="contained"
+              onClick={deleteForm}
+            >
               Delete
             </Button>
           </Grid>
           <Grid item xs={6}>
             <Stack direction="row" justifyContent="end">
               <Button
-                style={{ marginBottom: "30px" }}
+                style={{ marginBottom: "30px", backgroundColor: "#484349" }}
                 variant="contained"
                 onClick={insertDB}
+                // className={style.buttons}
               >
                 Submit
               </Button>
