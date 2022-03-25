@@ -1,46 +1,103 @@
+// Import fetch for Node.js
+const fetch = require('node-fetch');
+
 // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 const functions = require('firebase-functions');
 
 // The Firebase Admin SDK to access Firestore.
 const admin = require('firebase-admin');
 admin.initializeApp();
-
-// Import fetch for Node.js
-const fetch = require('node-fetch');
-
 const db = admin.firestore();
+
+
+/*
+ * FLAG:
+ * 0 - waiting for driver to accept / decline new route
+ * 1 - driver declined new route
+ * 2 - driver accepted new route
+ * 3 - no new route
+ * 
+ * Status:
+ * 0 - waiting for drivers to accept / decline order
+ * 1 - driver accepted order, put hasn't picket it up
+ * 2 - driver picked up order
+ * 3 - driver delivered order
+ */
+
+// Function that automatically updates the CurrentOrdersAmount of a driver
+// after he delivers a order or accepts a new one
+exports.updateCurrentOrderAmount = functions.firestore
+    .document('Drivers/{driverId}')
+    .onUpdate((change, _) => {
+        const driver = change.after.data()
+        const newOrderAmount = driver.Orders.length;
+
+        change.after.ref.update({
+            CurrentOrdersAmount: newOrderAmount
+        });
+
+        return Promise.resolve();
+    });
+
 
 exports.newOrder = functions.firestore
     .document('Orders/{orderId}')
-    .onCreate(async(snap, context) => {
+    .onCreate(async(snap, _) => {
         const order = snap.data();
         const filteredDrivers = await roughDriverFilter(order);
 
         // order drivers from the filtered list by possible gain
-        filteredDrivers.sort(function(a, b) {
-            const moneyFromOrder = order.priority * getDistance(order.PickupLocation, order.DropoffLocation)
-            const aNewPriority = (a.MoneyEarned + moneyFromOrder) / testNewRoute(a, order)[1];
-            const bNewPriority = (b.MoneyEarned + moneyFromOrder) / testNewRoute(b, order)[1];
+        // filteredDrivers.sort(function(a, b) {
+        //     const moneyFromOrder = order.priority * getDistance(order.PickupLocation, order.DropoffLocation)
+        //     const aNewPriority = (a.MoneyEarned + moneyFromOrder) / testNewRoute(a, order)[1];
+        //     const bNewPriority = (b.MoneyEarned + moneyFromOrder) / testNewRoute(b, order)[1];
 
-            return (bNewPriority - b.priority) - (aNewPriority - a.priority);
-        });
-    
+        //     return (bNewPriority - b.priority) - (aNewPriority - a.priority);
+        // });
+
+        const driver = filteredDrivers[0];
+
+        await db.collection('Drivers').doc(driver.id).set({
+            NewRoute: await updateRoute(driver.data(), order)
+        }, { merge: true });
+
+        await db.collection('Drivers').doc(driver.id).set({
+            Flag: 0
+        }, { merge: true });
+
+
+        // code for multiple drivers
+
         // update the driver's ordersAccepted
-        filteredDrivers.forEach(driver => {
-            if (order.status == 0) {
-                driver.routeNew = await testNewRoute(driver, order);
+        // filteredDrivers.forEach(async driver => {
+        //     if (order.status == 0) {
+        //         await db.collection('Drivers').doc(driver.id).set({
+        //             NewRoute: await updateRoute(driver.data(), order)
+        //         }, { merge: true });
 
-                while(driver.flag == 0) {}
+        //         await db.collection('Drivers').doc(driver.id).set({
+        //             Flag: 0
+        //         }, { merge: true });
 
-                if(driver.flag == 2) {
-                    updateRoute(driver, order);
-                    order.status = 1;
-                }
-            }
-        });        
+        //         while (driver.data().Flag == 0) {
+        //             await sleep(2000);
+        //         }
+
+        //         if (driver.data().Flag == 2) {
+        //             await db.collection('Drivers').doc(driver.id).set({
+        //                 Rout: updateRoute(driver.data(), order)
+        //             }, { merge: true });
+
+        //             await db.collection('Orders').doc(context.id).set({
+        //                 Status: 1
+        //             }, { merge: true });
+        //         }
+        //     }
+        // });
 
         return Promise.resolve();
     });
+
 
 // --------------------------------------------------
 // Rough Filter
@@ -52,125 +109,109 @@ exports.newOrder = functions.firestore
 // @returns {Array} of drivers sorted by priority
 
 async function roughDriverFilter(order) {
-    const geopointPickup = order.Pickup;
-
+    const geopointPickup = order.PickupLocation;
     var drivers = [];
 
     // filter number of orders
-    const query = await db.collection('Drivers').where('ordersAccepted', '<', 5).get();
+    const query = await db.collection('Drivers').where('CurrentOrdersAmount', '<', 5).get();
 
     // filter based on distance
     query.docs.forEach(doc => {
         const driver = doc.data();
-        const distance = getDistance(geopointPickup, driver.location);
+        const distance = getDistance(geopointPickup, driver.Location);
 
-        if (distance < 5) {
-            drivers.push(driver);
+        if (distance < 10) {
+            drivers.push(doc);
         }
     });
 
     // only return 10 drivers with the lowest score
     drivers.sort(function(a, b) {
-        return a.priority - b.priority
+        return a.data().priority - b.data().priority
     });
 
     drivers.length = Math.min(drivers.length, 10);
-
     return drivers;
 }
 
 function getDistance(point1, point2) {
     const diffLat = point1.latitude - point2.latitude;
     const diffLng = point1.longitude - point2.longitude;
-    const distance = Math.pow(Math.pow(diffLat, 2) + Math.pow(diffLng, 2), 0.5);
-    return distance;
+    return Math.pow(Math.pow(diffLat, 2) + Math.pow(diffLng, 2), 0.5);
 }
 
-// Function that automatically updates the CurrentOrdersAmount of a driver
-// after he delivers a order or accepts a new one
-exports.updateCurrentOrderAmount = functions.firestore
-    .document('Drivers/{driverId}')
-    .onUpdate((change, context) => {
-        const driver = change.after.data()
-        const newOrderAmount = driver.Orders.length;
 
-        change.after.ref.update({
-            CurrentOrdersAmount: newOrderAmount
-        });
-
-        return Promise.resolve();
-    });
-
-// --------------------------------------------------
-// API
-// --------------------------------------------------
-const noak = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
+// -----------------------
+// API Requests and Stuff
+// -----------------------
+const saf24nvoe38 = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
 
 function createPlan(driver, order) {
     var body = new Object();
 
     body.locations = new Array();
-    body.locations.push({
-        "id": "Start",
-        "latitude": driver.location.latitude,
-        "longitude": driver.location.longitude
-    });
-
-    body.locations.push({
-        "id": "Pickup" + order.id,
-        "latitude": order.Pickup.latitude,
-        "longitude": order.Pickup.longitude
-    });
-
-    body.locations.push({
-        "id": "Dropoff" + order.id,
-        "latitude": order.Dropoff.latitude,
-        "longitude": order.Dropoff.longitude
-    });
-
     body.vehicles = new Array();
+    body.transports = new Array();
+    body.routes = new Array();
+
+    if (driver['Route'] != "") {
+        const plan = JSON.parse(driver.Route);
+        body.routes.push(plan.routes[0]);
+        body.transports = plan.transports;
+        body.locations = plan.locations;
+    } else {
+        body.locations.push({
+            "id": "Start",
+            "latitude": driver.Location.latitude,
+            "longitude": driver.Location.longitude
+        });
+    }
+
+    body.locations.push({
+        "id": "Pickup" + order.Description,
+        "latitude": order.PickupLocation.latitude,
+        "longitude": order.PickupLocation.longitude
+    });
+
+    body.locations.push({
+        "id": "Dropoff" + order.Description,
+        "latitude": order.DropoffLocation.latitude,
+        "longitude": order.DropoffLocation.longitude
+    });
+
     body.vehicles.push({
         "id": "Bicycle",
         "startLocationId": "Start"
     });
 
-    body.transports = new Array();
     body.transports.push({
-        "id": order.id,
-        "pickupLocationId": "Pickup" + order.id,
-        "deliveryLocationId": "Dropoff" + order.id,
-        "priority": order.priority
+        "id": order.Description,
+        "pickupLocationId": "Pickup" + order.Description,
+        "deliveryLocationId": "Dropoff" + order.Description,
+        "priority": order.Priority
     });
 
     body.planningHorizon = {
-        "start": "2020-12-06T00:00:00.0000000+00:00",
-        "end": "2020-12-07T00:00:00.0000000+00:00"
+        "start": "2022-12-06T00:00:00.0000000+00:00",
+        "end": "2022-12-07T00:00:00.0000000+00:00"
     }
 
-    body.routes = new Array();
+    const bodyJSONString = JSON.stringify(body);
 
-    if (driver.hasOwnProperty('route')) {
-        body.routes.push(JSON.parse(driver.route))
-    }
-
-    var bodyJSONString = JSON.stringify(body);
-
-    const result = fetch("https://api.myptv.com/routeoptimization/v1/plans", {
+    return fetch("https://api.myptv.com/routeoptimization/v1/plans", {
             method: "POST",
-            headers: { apiKey: noak, "Content-Type": "application/json" },
+            headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
             body: bodyJSONString,
         })
         .then(response => response.json())
         .then(result => result["id"]);
-
-    return result
 }
 
 function optimizePlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id + "/operation/optimization?considerTransportPriorities=true";
     fetch(url, {
         method: "POST",
-        headers: { apiKey: noak, "Content-Type": "application/json" }
+        headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" }
     });
 }
 
@@ -179,14 +220,14 @@ async function checkIfPlanIsOptimized(id) {
 
     var result = await (fetch(url, {
             method: "GET",
-            headers: { apiKey: noak, "Content-Type": "application/json" },
+            headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
         })
         .then(response => response.json()));
 
     while (result["status"] != "SUCCEEDED") {
         result = await (fetch(url, {
                 method: "GET",
-                headers: { apiKey: noak, "Content-Type": "application/json" },
+                headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
             })
             .then(response => response.json()));
     }
@@ -194,43 +235,26 @@ async function checkIfPlanIsOptimized(id) {
 
 function getPlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
-    const result = fetch(url, {
+    return fetch(url, {
             method: "GET",
-            headers: { apiKey: noak, "Content-Type": "application/json" },
+            headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
         })
         .then(response => response.json());
-
-    return result;
 }
 
 function deletePlan(id) {
     const url = "https://api.myptv.com/routeoptimization/v1/plans/" + id;
     fetch(url, {
             method: "DELETE",
-            headers: { apiKey: noak, "Content-Type": "application/json" },
+            headers: { apiKey: saf24nvoe38, "Content-Type": "application/json" },
         })
         .then(response => response.json());
 }
 
 async function updateRoute(driver, order) {
     const id = await createPlan(driver, order);
-    optimizePlan(id);
-    await checkIfPlanIsOptimized(id);
-    getPlan(id).then(result => {
-        driver.route = JSON.stringify(result["routes"][0]);
-    });
-    deletePlan(id);
-}
 
-async function testNewRoute(driver, order) {
-    const id = await createPlan(driver, order);
     optimizePlan(id);
     await checkIfPlanIsOptimized(id);
-    getPlan(id).then(result => {
-        return [
-            result["routes"][0]["report"]["travelTime"] - JSON.parse(driver.route)[0]["report"]["travelTime"],
-            result["routes"][0]["report"]["distance"] - JSON.parse(driver.route)[0]["report"]["distance"]
-        ];
-    });
-    deletePlan(id);
+    return getPlan(id).then(result => JSON.stringify(result));
 }
