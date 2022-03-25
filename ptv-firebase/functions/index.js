@@ -65,30 +65,32 @@ exports.newOrder = functions.firestore
             Flag: 0
         }, { merge: true });
 
-        // while (driver.data().Flag == 0) {
-        //     await sleep(2000);
-        // }
 
-        // if (driver.data().Flag == 2) {
-        //     await db.collection('Drivers').doc(driver.id).set({
-        //         Rout: updateRoute(driver.data(), order)
-        //     }, { merge: true });
+        // code for multiple drivers
 
-        //     await db.collection('Orders').doc(context.id).set({
-        //         Status: 1
-        //     }, { merge: true });
-        // }
-
-        // // update the driver's ordersAccepted
+        // update the driver's ordersAccepted
         // filteredDrivers.forEach(async driver => {
         //     if (order.status == 0) {
-        //         driver.routeNew = await testNewRoute(driver, order);
+        //         await db.collection('Drivers').doc(driver.id).set({
+        //             NewRoute: await updateRoute(driver.data(), order)
+        //         }, { merge: true });
 
-        //         while (driver.flag == 0) {}
+        //         await db.collection('Drivers').doc(driver.id).set({
+        //             Flag: 0
+        //         }, { merge: true });
 
-        //         if (driver.flag == 2) {
-        //             updateRoute(driver, order);
-        //             order.status = 1;
+        //         while (driver.data().Flag == 0) {
+        //             await sleep(2000);
+        //         }
+
+        //         if (driver.data().Flag == 2) {
+        //             await db.collection('Drivers').doc(driver.id).set({
+        //                 Rout: updateRoute(driver.data(), order)
+        //             }, { merge: true });
+
+        //             await db.collection('Orders').doc(context.id).set({
+        //                 Status: 1
+        //             }, { merge: true });
         //         }
         //     }
         // });
@@ -118,9 +120,9 @@ async function roughDriverFilter(order) {
         const driver = doc.data();
         const distance = getDistance(geopointPickup, driver.Location);
 
-        // if (distance < 5) {
-        drivers.push(doc);
-        // }
+        if (distance < 10) {
+            drivers.push(doc);
+        }
     });
 
     // only return 10 drivers with the lowest score
