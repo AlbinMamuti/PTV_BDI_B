@@ -26,7 +26,7 @@ exports.newOrder = functions.firestore
         });
     
         // update the driver's ordersAccepted
-        filteredDrivers.forEach(driver => {
+        filteredDrivers.forEach(async driver => {
             if (order.status == 0) {
                 driver.routeNew = await testNewRoute(driver, order);
 
@@ -229,7 +229,8 @@ async function testNewRoute(driver, order) {
     getPlan(id).then(result => {
         return [
             result["routes"][0]["report"]["travelTime"] - JSON.parse(driver.route)[0]["report"]["travelTime"],
-            result["routes"][0]["report"]["distance"] - JSON.parse(driver.route)[0]["report"]["distance"]
+            result["routes"][0]["report"]["distance"] - JSON.parse(driver.route)[0]["report"]["distance"],
+            JSON.stringify(result["routes"][0])
         ];
     });
     deletePlan(id);
