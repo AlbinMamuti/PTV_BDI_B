@@ -31,27 +31,45 @@ exports.newOrder = functions.firestore
         const filteredDrivers = await roughDriverFilter(order);
 
         // order drivers from the filtered list by possible gain
-        filteredDrivers.sort(function(a, b) {
-            const moneyFromOrder = order.priority * getDistance(order.PickupLocation, order.DropoffLocation)
-            const aNewPriority = (a.MoneyEarned + moneyFromOrder) / testNewRoute(a, order)[1];
-            const bNewPriority = (b.MoneyEarned + moneyFromOrder) / testNewRoute(b, order)[1];
+        // filteredDrivers.sort(function(a, b) {
+        //     const moneyFromOrder = order.priority * getDistance(order.PickupLocation, order.DropoffLocation)
+        //     const aNewPriority = (a.MoneyEarned + moneyFromOrder) / testNewRoute(a, order)[1];
+        //     const bNewPriority = (b.MoneyEarned + moneyFromOrder) / testNewRoute(b, order)[1];
 
-            return (bNewPriority - b.priority) - (aNewPriority - a.priority);
-        });
+        //     return (bNewPriority - b.priority) - (aNewPriority - a.priority);
+        // });
 
-        // update the driver's ordersAccepted
-        filteredDrivers.forEach(async driver => {
-            if (order.status == 0) {
-                driver.routeNew = await testNewRoute(driver, order);
+        const driver = filteredDrivers[0];
 
-                while (driver.flag == 0) {}
+        await db.collection('Drivers').doc(driver.id).set({
+            NewRoute: await testNewRoute(driver.data(), order)
+        }, { merge: true });
 
-                if (driver.flag == 2) {
-                    updateRoute(driver, order);
-                    order.status = 1;
-                }
-            }
-        });
+        await db.collection('Drivers').doc(driver.id).set({
+            Flag: 0
+        }, { merge: true });
+
+        while (driver.data().Flag == 0) {}
+
+        if (driver.data().Flag == 2) {
+            await db.collection('Drivers').doc(driver.id).set({
+                Rout: updateRoute(driver.data(), order)
+            }, { merge: true });
+        }
+
+        // // update the driver's ordersAccepted
+        // filteredDrivers.forEach(async driver => {
+        //     if (order.status == 0) {
+        //         driver.routeNew = await testNewRoute(driver, order);
+
+        //         while (driver.flag == 0) {}
+
+        //         if (driver.flag == 2) {
+        //             updateRoute(driver, order);
+        //             order.status = 1;
+        //         }
+        //     }
+        // });
 
         return Promise.resolve();
     });
@@ -66,26 +84,26 @@ exports.newOrder = functions.firestore
 // @returns {Array} of drivers sorted by priority
 
 async function roughDriverFilter(order) {
-    const geopointPickup = order.Pickup;
+    // const geopointPickup = order.PickupLocation;
 
     var drivers = [];
 
     // filter number of orders
-    const query = await db.collection('Drivers').where('ordersAccepted', '<', 5).get();
+    const query = await db.collection('Drivers').where('CurrentOrdersAmount', '<', 5).get();
 
     // filter based on distance
     query.docs.forEach(doc => {
-        const driver = doc.data();
-        const distance = getDistance(geopointPickup, driver.location);
+        // const driver = doc.data();
+        // const distance = getDistance(geopointPickup, driver.Location);
 
-        if (distance < 5) {
-            drivers.push(driver);
-        }
+        // if (distance < 5) {
+        drivers.push(doc);
+        // }
     });
 
     // only return 10 drivers with the lowest score
     drivers.sort(function(a, b) {
-        return a.priority - b.priority
+        return a.data().priority - b.data().priority
     });
 
     drivers.length = Math.min(drivers.length, 10);
@@ -118,7 +136,6 @@ function createPlan(driver, order) {
         body.transports = plan.transports;
         body.locations = plan.locations;
     } else {
-
         body.locations.push({
             "id": "Start",
             "latitude": driver.Location.latitude,
@@ -229,14 +246,8 @@ async function testNewRoute(driver, order) {
     const id = await createPlan(driver, order);
     optimizePlan(id);
     await checkIfPlanIsOptimized(id);
-    getPlan(id).then(result => {
-        return [
-            result["routes"][0]["report"]["travelTime"] - JSON.parse(driver.route)[0]["report"]["travelTime"],
-            result["routes"][0]["report"]["distance"] - JSON.parse(driver.route)[0]["report"]["distance"],
-            JSON.stringify(result["routes"][0])
-        ];
-    });
-    deletePlan(id);
+    return getPlan(id).then(result => JSON.stringify(result));
+    //deletePlan(id);
 }
 
 // async function customRoute() {
