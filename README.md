@@ -1,7 +1,9 @@
 # PTV_BDI_B
-Our project for the PTV Case at StartHack 22.
+Our project for the PTV Case at StartHack 22 🎉
 
-Mayed by BDI B:
+---
+
+### Mayed by BDI B:
 - Samira Buschor
 - Tim Kluser
 - Albin Mamuti
