@@ -1,14 +1,28 @@
+// Import fetch for Node.js
+const fetch = require('node-fetch');
+
 // The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
 const functions = require('firebase-functions');
 
 // The Firebase Admin SDK to access Firestore.
 const admin = require('firebase-admin');
 admin.initializeApp();
-
-// Import fetch for Node.js
-const fetch = require('node-fetch');
-
 const db = admin.firestore();
+
+// Function that automatically updates the CurrentOrdersAmount of a driver
+// after he delivers a order or accepts a new one
+exports.updateCurrentOrderAmount = functions.firestore
+    .document('Drivers/{driverId}')
+    .onUpdate((change, context) => {
+        const driver = change.after.data()
+        const newOrderAmount = driver.Orders.length;
+
+        change.after.ref.update({
+            CurrentOrdersAmount: newOrderAmount
+        });
+
+        return Promise.resolve();
+    });
 
 exports.newOrder = functions.firestore
     .document('Orders/{orderId}')
@@ -24,20 +38,20 @@ exports.newOrder = functions.firestore
 
             return (bNewPriority - b.priority) - (aNewPriority - a.priority);
         });
-    
+
         // update the driver's ordersAccepted
         filteredDrivers.forEach(async driver => {
             if (order.status == 0) {
                 driver.routeNew = await testNewRoute(driver, order);
 
-                while(driver.flag == 0) {}
+                while (driver.flag == 0) {}
 
-                if(driver.flag == 2) {
+                if (driver.flag == 2) {
                     updateRoute(driver, order);
                     order.status = 1;
                 }
             }
-        });        
+        });
 
         return Promise.resolve();
     });
@@ -86,21 +100,6 @@ function getDistance(point1, point2) {
     return distance;
 }
 
-// Function that automatically updates the CurrentOrdersAmount of a driver
-// after he delivers a order or accepts a new one
-exports.updateCurrentOrderAmount = functions.firestore
-    .document('Drivers/{driverId}')
-    .onUpdate((change, context) => {
-        const driver = change.after.data()
-        const newOrderAmount = driver.Orders.length;
-
-        change.after.ref.update({
-            CurrentOrdersAmount: newOrderAmount
-        });
-
-        return Promise.resolve();
-    });
-
 // --------------------------------------------------
 // API Requests
 // --------------------------------------------------
@@ -119,7 +118,7 @@ function createPlan(driver, order) {
         body.transports = plan.transports;
         body.locations = plan.locations;
     } else {
-            
+
         body.locations.push({
             "id": "Start",
             "latitude": driver.Location.latitude,
@@ -145,7 +144,7 @@ function createPlan(driver, order) {
         "startLocationId": "Start"
     });
 
-    
+
     body.transports.push({
         "id": order.Description,
         "pickupLocationId": "Pickup" + order.Description,
@@ -219,15 +218,11 @@ function deletePlan(id) {
 
 async function updateRoute(driver, order) {
     const id = await createPlan(driver, order);
-
-    console.log(id);
     optimizePlan(id);
     await checkIfPlanIsOptimized(id);
-    return getPlan(id).then(result => {
-        return JSON.stringify(result);
-    });
+    return getPlan(id).then(result => JSON.stringify(result));
 
-    deletePlan(id);
+    // deletePlan(id);
 }
 
 async function testNewRoute(driver, order) {
