@@ -102,30 +102,41 @@ exports.updateCurrentOrderAmount = functions.firestore
     });
 
 // --------------------------------------------------
-// API
+// API Requests
 // --------------------------------------------------
 const noak = "MzlmOWIyNjhiNTY3NDk3MmFhYjQ1NDVlZTNhOGQ3ZDk6MjkwZmQwYTktYzI2NC00ODkzLWFiYjgtMjg3MzE4Y2NkOWYy";
 
 function createPlan(driver, order) {
     var body = new Object();
 
+    body.routes = new Array();
     body.locations = new Array();
+    body.transports = new Array();
+
+    if (driver['Route'] != "") {
+        const plan = JSON.parse(driver.Route);
+        body.routes.push(plan.routes[0]);
+        body.transports = plan.transports;
+        body.locations = plan.locations;
+    } else {
+            
+        body.locations.push({
+            "id": "Start",
+            "latitude": driver.Location.latitude,
+            "longitude": driver.Location.longitude
+        });
+    }
+
     body.locations.push({
-        "id": "Start",
-        "latitude": driver.location.latitude,
-        "longitude": driver.location.longitude
+        "id": "Pickup" + order.Description,
+        "latitude": order.PickupLocation.latitude,
+        "longitude": order.PickupLocation.longitude
     });
 
     body.locations.push({
-        "id": "Pickup" + order.id,
-        "latitude": order.Pickup.latitude,
-        "longitude": order.Pickup.longitude
-    });
-
-    body.locations.push({
-        "id": "Dropoff" + order.id,
-        "latitude": order.Dropoff.latitude,
-        "longitude": order.Dropoff.longitude
+        "id": "Dropoff" + order.Description,
+        "latitude": order.DropoffLocation.latitude,
+        "longitude": order.DropoffLocation.longitude
     });
 
     body.vehicles = new Array();
@@ -134,23 +145,17 @@ function createPlan(driver, order) {
         "startLocationId": "Start"
     });
 
-    body.transports = new Array();
+    
     body.transports.push({
-        "id": order.id,
-        "pickupLocationId": "Pickup" + order.id,
-        "deliveryLocationId": "Dropoff" + order.id,
-        "priority": order.priority
+        "id": order.Description,
+        "pickupLocationId": "Pickup" + order.Description,
+        "deliveryLocationId": "Dropoff" + order.Description,
+        "priority": order.Priority
     });
 
     body.planningHorizon = {
         "start": "2020-12-06T00:00:00.0000000+00:00",
         "end": "2020-12-07T00:00:00.0000000+00:00"
-    }
-
-    body.routes = new Array();
-
-    if (driver.hasOwnProperty('route')) {
-        body.routes.push(JSON.parse(driver.route))
     }
 
     var bodyJSONString = JSON.stringify(body);
@@ -214,11 +219,14 @@ function deletePlan(id) {
 
 async function updateRoute(driver, order) {
     const id = await createPlan(driver, order);
+
+    console.log(id);
     optimizePlan(id);
     await checkIfPlanIsOptimized(id);
-    getPlan(id).then(result => {
-        driver.route = JSON.stringify(result["routes"][0]);
+    return getPlan(id).then(result => {
+        return JSON.stringify(result);
     });
+
     deletePlan(id);
 }
 
@@ -235,3 +243,78 @@ async function testNewRoute(driver, order) {
     });
     deletePlan(id);
 }
+
+// async function customRoute() {
+//     const order1 = {
+//         "id": "1",
+//         "Status": 0,
+//         "PickupLocation": {
+//           "latitude": 47.415191650390625,
+//           "longitude": 8.546640396118164
+//         },
+//         "DropoffLocation": {
+//           "latitude": 47.37395095825195,
+//           "longitude": 8.54990005493164
+//         },
+//         "Description": "PacketN",
+//         "ClientID": "1",
+//         "Priority": 6
+//       };
+
+//     const order2 = {
+//         "id": "2",
+//         "PickupLocation": {
+//             "latitude": 47.43510110473633,
+//             "longitude": 9.386520385742188
+//           },
+//         "DropoffLocation": {
+//           "latitude": 47.42802047729492,
+//           "longitude": 9.38125991821289
+//         },
+//         "Description": "Ramen",
+//         "ClientID": "1",
+//         "Status": 0,
+//         "Priority": 1
+//       };
+
+//     const order3 = {
+//         "id": "3",
+//         "DropoffLocation": {
+//           "latitude": 47.43275833129883,
+//           "longitude": 9.378490447998047
+//         },
+//         "Status": 0,
+//         "Description": "Pizza",
+//         "ClientID": "1",
+//         "PickupLocation": {
+//           "latitude": 47.43410110473633,
+//           "longitude": 9.386520385742188
+//         },
+//         "Priority": 3
+//       };
+
+//       var driver = {
+//         "Orders": [
+//           "projects/ptvhack22/databases/(default)/documents/Orders/KMYG29vVFNjIFdjWYG1i"
+//         ],
+//         "DistanceTravelled": 10.5,
+//         "MoneyEarned": 65.75,
+//         "CurrentOrdersAmount": 1,
+//         "Name": "Albin",
+//         "Email": "albinmamuti00@gmail.com",
+//         "Route": "",
+//         "Location": {
+//           "latitude": 47.43364,
+//           "longitude": 9.384147
+//         },
+//         "Priority": 0
+//       };
+
+//       driver.Route = await updateRoute(driver, order1);
+//       driver.Route = await updateRoute(driver, order2);
+//       driver.Route = await updateRoute(driver, order3);
+//       const json = JSON.parse(driver.Route);
+//       console.log(json.routes[0].stops);
+//   }
+
+// customRoute();
