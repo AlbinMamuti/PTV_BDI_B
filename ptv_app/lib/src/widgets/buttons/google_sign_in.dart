@@ -1,11 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-import '../../homepage.dart';
+import 'package:ptv_app/src/homepage.dart';
 import '../../util/authentification.dart';
-import '../maps/map_view.dart';
 
 class GoogleSignInButton extends StatefulWidget {
+  const GoogleSignInButton({Key? key}) : super(key: key);
   @override
   _GoogleSignInButtonState createState() => _GoogleSignInButtonState();
 }
@@ -16,7 +15,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: EdgeInsets.only(bottom: 16.0),
       child: _isSigningIn
           ? CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -44,10 +43,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
                 if (user != null && (await Authentication.isAuthorized(user))) {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (context) => MapView(
-                        user: user,
-                      ),
-                    ),
+                        builder: (context) => HomePage(user: user)),
                   );
                 }
               },

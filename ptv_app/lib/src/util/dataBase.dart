@@ -1,14 +1,51 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ptv_app/src/util/types/ptv_types.dart';
 import 'dart:convert';
 
 import 'package:ptv_app/src/util/types/types.dart';
 
 class getDataDatabase {
-  static Stream<DocumentSnapshot> getDriverStream(User user) {
+  /// getDriverStream User [user]
+  ///
+  /// returns a Stream of the Driver Information
+  /// For test purposes this is Hardcoded
+  static Stream<DocumentSnapshot<DriversFBClass>> getDriverStream(User user) {
+    var doc = FirebaseFirestore.instance
+        .collection('Drivers')
+        .doc('UyqMs2696YZJv3SoEZTm')
+        .withConverter<DriversFBClass>(
+          fromFirestore: (snapshot, _) =>
+              DriversFBClass.fromJson(snapshot.data()!),
+          toFirestore: (daten, _) => daten.toJson(),
+        );
+    return doc.snapshots();
+  }
+
+  static Future<DriversFBClass?> getDriversDocTyped() async {
+    var doc = FirebaseFirestore.instance
+        .collection('Drivers')
+        .doc('UyqMs2696YZJv3SoEZTm')
+        .withConverter<DriversFBClass>(
+          fromFirestore: (snapshot, _) =>
+              DriversFBClass.fromJson(snapshot.data()!),
+          toFirestore: (daten, _) => daten.toJson(),
+        );
+    return (await doc.get()).data();
+  }
+
+  /// getDriverStream User [user]
+  ///
+  /// returns a Stream of the Driver Information
+  ///
+  static Future<Stream<DocumentSnapshot<Object?>>> getDriverStreamDate(
+      User user) async {
+    CollectionReference collection =
+        FirebaseFirestore.instance.collection('Drivers');
+    var query = await collection.where('Email', isEqualTo: user.email).get();
     return FirebaseFirestore.instance
         .collection('Driver')
-        .doc('UyqMs2696YZJv3SoEZTm')
+        .doc(query.docs.first.id)
         .snapshots();
   }
 
@@ -80,29 +117,5 @@ class getDataDatabase {
       ret.add(dictLoc[element["locationId"]]!);
     });
     return ret;
-  }
-
-  static Future<List<DateTime>> getTimes(User user) async {
-    CollectionReference ArbeiterStunden =
-        FirebaseFirestore.instance.collection('Arbeiterstunden');
-    List<DateTime> toRet = [];
-    DateTime today = DateTime.now();
-
-    DateTime mostRecentWeekday(DateTime date, int weekday) => DateTime(
-        date.year, date.month, date.day - (date.weekday - weekday) % 7);
-
-    var dataBase = ArbeiterStunden.where('Anfang',
-            isGreaterThanOrEqualTo: mostRecentWeekday(today, 1))
-        .where('Email', isEqualTo: user.email);
-    var break1 = await dataBase.get();
-    var break2 = break1.docs;
-    break2.forEach((element) {
-      Map<String, dynamic> data = element.data()! as Map<String, dynamic>;
-      var temp = DateTime.parse(data['Anfang'].toDate().toString());
-      toRet.add(temp);
-    });
-    toRet.sort();
-    //
-    return toRet;
   }
 }

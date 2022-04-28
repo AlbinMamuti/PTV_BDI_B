@@ -1,6 +1,4 @@
 import 'dart:convert';
-
-import 'package:dio/dio.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ptv_app/src/util/types/directions_model.dart';
 import 'package:http/http.dart' as http;
@@ -16,7 +14,6 @@ class DirectionsRepository {
     String originString = 'origin=${origin.latitude},${origin.longitude}';
     String destString =
         'destination=${destination.latitude},${destination.longitude}';
-    print('kek');
     final resp = await http.get(Uri.parse(_baseUrl +
         '&' +
         originString +

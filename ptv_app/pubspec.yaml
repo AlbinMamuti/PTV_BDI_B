@@ -47,8 +47,12 @@ dependencies:
   flutter_speed_dial: ^5.0.0+1
   dio: ^4.0.4
   flutter_polyline_points: ^1.0.0
-
-  
+  flutter_map: ^0.13.0
+  latlong2: ^0.8.1
+  http_retry: ^0.2.0
+  sliding_up_panel: ^2.0.0+1
+  timelines: ^0.1.0
+  flutter_map_marker_popup: ^2.1.2
 
 dev_dependencies:
   flutter_test:
@@ -102,3 +106,7 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+  fonts:
+        - family: MyFlutterApp
+          fonts:
+            - asset: fonts/MyFlutterApp.ttf

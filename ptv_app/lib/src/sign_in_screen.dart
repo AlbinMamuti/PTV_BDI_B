@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ptv_app/src/util/authentification.dart';
 import 'package:ptv_app/src/widgets/buttons/google_sign_in.dart';
 import 'custom/CustomColors.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class SignInScreen extends StatefulWidget {
   @override
@@ -70,14 +68,14 @@ class _SignInScreenState extends State<SignInScreen> {
                   );
                 },
               ),
-              Container(
-                padding: EdgeInsets.fromLTRB(5, 2, 5, 2),
-                //color: Colors.black12,
-                child: Text(
-                  'register',
-                  style: TextStyle(color: CustomColors.snow),
-                ),
-              ),
+              // Container(
+              //   padding: EdgeInsets.fromLTRB(5, 2, 5, 2),
+              //   //color: Colors.black12,
+              //   child: Text(
+              //     'register',
+              //     style: TextStyle(color: CustomColors.snow),
+              //   ),
+              // ),
             ],
           ),
         ),
